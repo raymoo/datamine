@@ -1,0 +1,41 @@
+# System Calls
+These are the system calls supported by default.
+
+shutdown
+========
+Initiates shutdown. If argument is true, will do a restart.
+
+shutdown_force
+==============
+Forces shutdown. If argument is true, will do a restart.
+
+exit
+====
+Kills the process.
+
+wait_shutdown
+=============
+Wait on a shutdown event. No argument. Response is a boolean telling whether to
+restart.
+
+wait_text
+=========
+Wait for a line of text input. No argument. The response is a line of text.
+
+wait_digiline
+=============
+Wait for a digiline message. No argument. The response is a table with fields
+`channel` and `data`.
+
+wait_err
+==========
+Wait for a process to crash. No argument. The response is an error message.
+
+forkexec
+========
+Creates a new process. The argument is a program (function) to run with the new
+process. The response is the pid of the new process.
+
+display
+=======
+Displays text on the screen. The argument is a string to display.
