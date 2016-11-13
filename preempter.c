@@ -9,7 +9,8 @@ int old_mask;
 int old_count;
 
 void yield_hook(lua_State *L, lua_Debug *ar) {
-  lua_yield(L, 0);
+  lua_pushstring(L, "_preempt");
+  lua_yield(L, 1);
 }
 
 void activate_preempt(lua_State *L, int interval) {
@@ -36,7 +37,7 @@ int sandboxed_resume(lua_State *L) {
   // Push args onto the thread stack
   lua_State *thread_state = lua_tothread(L, 2);
   lua_xmove(L, thread_state, resume_args);
-  
+
   // Run with preemption
   activate_preempt(thread_state, instr_count);
   int res = lua_resume(thread_state, resume_args);
@@ -59,7 +60,7 @@ int sandboxed_resume(lua_State *L) {
 // Arguments: global environment, main function
 int sandboxed_create(lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
-  luaL_checktype(L, 1, LUA_TFUNCTION);
+  luaL_checktype(L, 2, LUA_TFUNCTION);
 
   // Put a new thread at the bottom of the stack
   lua_State *thread_state = lua_newthread(L);
@@ -69,4 +70,6 @@ int sandboxed_create(lua_State *L) {
   lua_xmove(L, thread_state, 1);
   
   lua_setfenv(L, 1);
+
+  return 1;
 }
