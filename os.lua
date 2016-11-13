@@ -76,7 +76,6 @@ local function handle_errors ()
 	
 end
 os.forkexec(handle_errors)
-os.forkexec(handle_errors)
 io.write_line("Started!")
 
 -- Digiline Test
