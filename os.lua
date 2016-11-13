@@ -35,6 +35,11 @@ function os.display(text)
 	return os.yield("display", text)
 end
 
+-- Digiline output function.
+function os.send_digiline(channel, msg)
+	return os.yield("send_digiline", { channel = channel, data = msg })
+end
+
 -- Stores 1000 characters
 local text_buffer = ""
 local function push_buffer(text)
@@ -63,15 +68,31 @@ io.write_line("Echo OS v0.0.1")
 
 io.write("Starting error handler...")
 -- Error handler
-os.forkexec(function()
+local function handle_errors ()
 	while true do
 		local errmsg = os.wait_err()
 		io.write_line("ERROR: " .. errmsg)
 	end
 	
-end)
+end
+os.forkexec(handle_errors)
+os.forkexec(handle_errors)
 io.write_line("Started!")
 
+-- Digiline Test
+os.forkexec(function()
+	io.write_line("Seeking light sensor on channel \"light\"")
+	os.send_digiline("light", "GET")
+	local msg = os.wait_digiline()
+	io.write_line("Got light value: " .. msg.data)
+end)
+
+-- Error Test
+os.forkexec(function()
+	-- Should get displayed by the error handler
+	error("test")
+end)
+	
 io.write_line("Starting echo loop.")
 -- Echo loop
 while true do

@@ -36,6 +36,7 @@ local function env()
 			sub = string.sub
 		},
 		tostring = tostring,
+		error = error,
 	}
 end
 
@@ -44,7 +45,7 @@ local function caps(cpu, mem)
 end
 
 local function os_program()
-	local program = loadstring(os_source)
+	local program = assert(loadstring(os_source))
 	setfenv(program, env())
 	return program
 end
@@ -127,4 +128,18 @@ minetest.register_node("datamine:computer", {
 			meta:set_string("formspec", datamine.screen_formspec(fields.output or ""))
 		end
 	end,
+	digiline = {
+		receptor = {},
+		effector = {
+			action = function(pos, node, channel, msg)
+				local computer = datamine.get_computer(pos)
+				if computer then
+					computer:interrupt("digiline", {
+						channel = channel,
+						data = msg,
+					})
+				end
+			end,
+		},
+	}
 })

@@ -228,7 +228,7 @@ function Computer:interrupt(id, data)
 		end
 	elseif id == "error" then
 		assert(type(data) == "string")
-		self:fill_input("error", data)
+		self:fill_input("err", data)
 	end
 end
 
@@ -264,7 +264,7 @@ Computer.register_syscall("exit", function(self, arg, pid)
 end)
 
 function Computer:wait_on_queue(pid, name)
-	local queue = self.input_queues[name]
+	local queue = self.input_buffers[name]
 	if queue:nonempty() then
 		local data = queue:dequeue()
 		local process = self.processes[pid]
@@ -318,6 +318,19 @@ Computer.register_syscall("display", function(self, text, pid, pos)
 		self:error("String passed to display was too big", pid)
 	else
 		display_at_pos(pos, text)
+		self.processes[pid]:respond()
+		self.ready_queue:enqueue(pid)
+	end
+end)
+
+Computer.register_syscall("send_digiline", function(self, data, pid, pos)
+	if type(data) ~= "table" then
+		self:error("Non-table passed to send_digiline", pid)
+	elseif type(data.channel) ~= "string" then
+		self:error("Bad channel in send_digiline", pid)
+	else
+		digiline:receptor_send(pos, digiline.rules.default, data.channel,
+			data.data)
 		self.processes[pid]:respond()
 		self.ready_queue:enqueue(pid)
 	end

@@ -39,3 +39,8 @@ process. The response is the pid of the new process.
 display
 =======
 Displays text on the screen. The argument is a string to display.
+
+send_digiline
+=============
+Sends a digiline message. The argument is a table with fields `channel` and
+`data`.
