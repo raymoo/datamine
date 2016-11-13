@@ -1,1 +1,1 @@
-Brings the power of the cloud to Minetest.
+Brings computers to Minetest.

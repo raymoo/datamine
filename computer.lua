@@ -48,8 +48,8 @@ p	`env`: The environment processes are run in.
 	`fresh_num`: A unique number for this run.
 ]]--
 
-local Buffer = dofile(cloud.modpath .. "buffer.lua")
-local Process = dofile(cloud.modpath .. "process.lua")
+local Buffer = dofile(datamine.modpath .. "buffer.lua")
+local Process = dofile(datamine.modpath .. "process.lua")
 
 local Computer = {}
 Computer.__index = Computer
@@ -160,7 +160,7 @@ end
 
 local function log_mem(pos)
 	minetest.log("warning",
-		"[cloud] Out of memory killed: " .. minetest.pos_to_string(pos))
+		"[datamine] Out of memory killed: " .. minetest.pos_to_string(pos))
 end
 
 function Computer:run(pos)
@@ -308,7 +308,7 @@ end)
 
 local function display_at_pos(pos, text)
 	local meta = minetest.get_meta(pos)
-	meta:set_string("formspec", cloud.screen_formspec(text))
+	meta:set_string("formspec", datamine.screen_formspec(text))
 end
 
 Computer.register_syscall("display", function(self, text, pid, pos)

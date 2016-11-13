@@ -67,7 +67,7 @@ function Process:run(timestep)
 	
 	local thread = self.thread
 	local success, request, request_arg  =
-		cloud.sandboxed_resume(timestep, thread, self.response)
+		datamine.sandboxed_resume(timestep, thread, self.response)
 	if not success then
 		self.status = "errored"
 		return false, request

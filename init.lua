@@ -2,18 +2,18 @@ local LIB_PATH = "preempter.so"
 local MAX_FILE_SIZE = 100000
 local MAX_MEMORY = 1024
 
-cloud = {}
+datamine = {}
 local modpath = minetest.get_modpath(minetest.get_current_modname()) .. "/"
-cloud.modpath = modpath
+datamine.modpath = modpath
 
 local insecure_env = minetest.request_insecure_environment()
 if not insecure_env then
-	local err = "[cloud] This mod requires an insecure environment to run.\n"
+	local err = "[datamine] This mod requires an insecure environment to run.\n"
 	err = err .. "Please add this mod as a trusted mod, or disable mod security."
 	error(err)
 end
--- cloud.sandboxed_create = insecure_env.package.loadlib(modpath .. LIB_PATH, "sandboxed_create")
-cloud.sandboxed_resume = insecure_env.package.loadlib(modpath .. LIB_PATH, "sandboxed_resume")
+datamine.sandboxed_resume =
+	assert(insecure_env.package.loadlib(modpath .. LIB_PATH, "sandboxed_resume"))
 
 local Computer = dofile(modpath .. "computer.lua")
 local Buffer = dofile(modpath .. "buffer.lua")
@@ -50,7 +50,7 @@ local function os_program()
 end
 
 -- Screen formspecs
-function cloud.screen_formspec(display)
+function datamine.screen_formspec(display)
 	local everything = {}
 	everything[1] = "size[8,8]textarea[0,0;8,7;output;;"
 	everything[2] = minetest.formspec_escape(display)
@@ -69,7 +69,7 @@ local function run_computers()
 	for poshash, computer in pairs(active_computers) do
 		local pos = unhash_pos(poshash)
 		local node = minetest.get_node_or_nil(pos)
-		if node and node.name == "cloud:computer" then
+		if node and node.name == "datamine:computer" then
 			computer:run(pos)
 			if computer.state ~= "on" then
 				table.insert(remove_these, poshash)
@@ -96,27 +96,27 @@ local function start_computer(pos, meta)
 	return computer
 end
 
-function cloud.get_computer(pos)
+function datamine.get_computer(pos)
 	return active_computers[hash_pos(pos)]
 end
 
 -- Computer Nodes
-minetest.register_node("cloud:computer", {
+minetest.register_node("datamine:computer", {
 	description = "Computer",
 	groups = { cracky = 3 },
 	drawtype = "normal",
-	tiles = { "cloud_computer.png" },
+	tiles = { "datamine_computer.png" },
 	after_place_node = function(pos, placer, itemstack, pointed_thing)
 		local p_name = placer and placer:get_player_name() or ""
 		local meta = minetest.get_meta(pos)
 		meta:set_string("owner", p_name)
-		meta:set_string("formspec", cloud.screen_formspec(""))
+		meta:set_string("formspec", datamine.screen_formspec(""))
 		meta:set_string("used_space", 0)
 		meta:set_string("max_space", MAX_FILE_SIZE)
 		start_computer(pos, meta)
 	end,
 	on_receive_fields = function(pos, formname, fields, sender)
-		local computer = cloud.get_computer(pos)
+		local computer = datamine.get_computer(pos)
 		if not computer then
 			computer = start_computer(pos, minetest.get_meta(pos))
 		elseif fields.submit and fields.input then
@@ -124,7 +124,7 @@ minetest.register_node("cloud:computer", {
 				computer:interrupt("text", s)
 			end
 			local meta = minetest.get_meta(pos)
-			meta:set_string("formspec", cloud.screen_formspec(fields.output or ""))
+			meta:set_string("formspec", datamine.screen_formspec(fields.output or ""))
 		end
 	end,
 })
