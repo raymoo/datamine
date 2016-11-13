@@ -106,7 +106,15 @@ minetest.register_node("datamine:computer", {
 	description = "Computer",
 	groups = { cracky = 3 },
 	drawtype = "normal",
-	tiles = { "datamine_computer.png" },
+	paramtype2 = "facedir",
+	tiles = {
+		"datamine_computer_blank.png",
+		"datamine_computer_blank.png",
+		"datamine_computer_blank.png",
+		"datamine_computer_left.png",
+		"datamine_computer_blank.png",
+		"datamine_computer_front.png",
+	},
 	after_place_node = function(pos, placer, itemstack, pointed_thing)
 		local p_name = placer and placer:get_player_name() or ""
 		local meta = minetest.get_meta(pos)
