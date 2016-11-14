@@ -56,20 +56,3 @@ int sandboxed_resume(lua_State *L) {
     return 2;
   }
 }
-
-// Arguments: global environment, main function
-int sandboxed_create(lua_State *L) {
-  luaL_checktype(L, 1, LUA_TTABLE);
-  luaL_checktype(L, 2, LUA_TFUNCTION);
-
-  // Put a new thread at the bottom of the stack
-  lua_State *thread_state = lua_newthread(L);
-  lua_insert(L, 1);
-  
-  // Set the function of the thread
-  lua_xmove(L, thread_state, 1);
-  
-  lua_setfenv(L, 1);
-
-  return 1;
-}
