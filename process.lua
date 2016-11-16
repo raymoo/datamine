@@ -5,11 +5,12 @@ Functions:
 	an argument to the function.
 
 Methods:
-	Process:run(timestep): Runs the process. `timestep`
-	is a number specifying how many instructions to limit the run to.
-	If no errors occur, returns true as the first value. If the process
-	was preempted (ran out of instructions), the second value will be
-	`"preempt"`. If the process finished, the second value will
+	Process:run(unit, num_units): Runs the process. `unit`
+	is a number specifying how many instructions a "unit" of time should be.
+	`units` is how many time units to run for.
+	If no errors occur, returns the number of units elapsed as the first
+	value. If the process was preempted (ran out of instructions), the second
+	value will be `"_preempt"`. If the process finished, the second value will
 	be `"exit". If the process made a system call, the second value will be
 	some string code identifying the type of syscall. Additionally, the
 	argument to the syscall will be the third return value.
@@ -60,30 +61,30 @@ function Process.new(env, prog, arg)
 	return process
 end
 
-function Process:run(timestep)
+function Process:run(unit, num_units)
 	if self.status ~= "ready" then
 		error("Process is " .. self.status .. ", not ready")
 	end
 	
 	local thread = self.thread
-	local success, request, request_arg  =
-		datamine.sandboxed_resume(timestep, thread, self.response)
-	if not success then
+	local units_elapsed, request, request_arg  =
+		datamine.sandboxed_resume(unit, num_units, thread, self.response)
+	if not units_elapsed then
 		self.status = "errored"
 		return false, request
 	else
 		local real_status = coroutine.status(thread)
 		if real_status == "dead" then
 			self.status = "finished"
-			return true, "exit"
+			return units_elapsed, "exit"
 		elseif request == "_preempt" then
-			return true, "_preempt"
+			return units_elapsed, "_preempt"
 		elseif type(request) ~= "string" then
 			self.status = "errored"
 			return false, "Bad syscall id"
 		else
 			self.status = "waiting"
-			return true, request, request_arg
+			return units_elapsed, request, request_arg
 		end
 	end
 end

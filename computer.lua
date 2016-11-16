@@ -131,30 +131,42 @@ function Computer:error(errstr, violating_pid)
 	self:interrupt("error", errstr)
 end
 
+-- Returns fuel units consumed by the syscall
 function Computer:handle_syscall(syscall_name, arg, pid, pos)
 	local handler = syscalls[syscall_name]
 	if handler then
-		handler(self, arg, pid, pos)
+		return handler(self, arg, pid, pos)
 	else
 		self:error("Bad syscall type: " .. tostring(syscall_name), pid)
+		return 1
 	end
 end
 
-function Computer:run_helper(pos)
-	if self.state ~= "on" then return end
-	local pid, process = self:dequeue_process(self.ready_queue)
-	if not pid then return end
-	
-	local success, syscall_name, syscall_arg =
-		process:run(self.capabilities.cpu)
-	if success then
-		self:handle_syscall(syscall_name, syscall_arg, pid, pos)
-	else
-		self:error(syscall_name, pid)
+function Computer:run_helper(pos, elapsed_units)
+	if self.state ~= "on" then
+		error("Can't run computer that is off")
 	end
 
-	if self.process_count == 0 then
-		self:die()
+	local timestep = self.capabilities.cpu % 10
+	local fuel = 10
+	while fuel > 0 and self.state == "on" do
+		local pid, process = self:dequeue_process(self.ready_queue)
+		if not pid then break end
+		
+		local units_elapsed, syscall_name, syscall_arg =
+			process:run(timestep, fuel)
+		if units_elapsed then
+			local more_elapsed =
+				self:handle_syscall(syscall_name, syscall_arg, pid, pos) or 0
+			fuel = fuel - units_elapsed - more_elapsed - 1
+		else
+			self:error(syscall_name, pid)
+			fuel = 0
+		end
+
+		if self.process_count == 0 then
+			self:die()
+		end
 	end
 end
 
@@ -320,6 +332,7 @@ Computer.register_syscall("display", function(self, text, pid, pos)
 		display_at_pos(pos, text)
 		self.processes[pid]:respond()
 		self.ready_queue:enqueue(pid)
+		return 10
 	end
 end)
 
@@ -333,6 +346,7 @@ Computer.register_syscall("send_digiline", function(self, data, pid, pos)
 			data.data)
 		self.processes[pid]:respond()
 		self.ready_queue:enqueue(pid)
+		return 10
 	end
 end)
 
