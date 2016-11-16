@@ -42,9 +42,8 @@ p	`env`: The environment processes are run in.
 	`process_count`: Number of current processes
 	`processes`: A map from pids to processes.
 	`ready_queue`: Buffer of pids ready to be resumed.
-	`input_queues`: Map from event types to Buffers of pids waiting on
-	the event.
-	`input_buffers`: Map from event types to Buffers of event data.
+	`wait_queue`: A queue of processes waiting to take an event.
+	`event_buffer`: A queue of unread events.
 	`fresh_num`: A unique number for this run.
 ]]--
 
@@ -68,17 +67,8 @@ function Computer.new(env, capabilities, init)
 		process_count = 1,
 		processes = processes,
 		ready_queue = ready_queue,
-		input_queues = {
-			text = Buffer.new(),
-			digiline = Buffer.new(),
-			shutdown = Buffer.new(),
-			err = Buffer.new(),
-		},
-		input_buffers = {
-			text = Buffer.new(),
-			digiline = Buffer.new(),
-			err = Buffer.new(),
-		},
+		wait_queue = Buffer.new(),
+		event_buffer = Buffer.new(),
 		fresh_num = 2,
 	}
 	setmetatable(computer, Computer)
@@ -192,19 +182,19 @@ function Computer:run(pos)
 	end
 end
 
-function Computer:fill_input(name, data, contingency)
-	local queue = self.input_queues[name]
-	local buffer = self.input_buffers[name]
+function Computer:event(name, data)
+	local queue = self.wait_queue
+	local buffer = self.event_buffer
+
+	local event = {name, data}
 
 	if queue then
 		local pid, process = self:dequeue_process(queue)
 		if pid then
-			process:respond(data)
+			process:respond(event)
 			self.ready_queue:enqueue(pid)
-		elseif buffer then
-			buffer:enqueue(data)
-		elseif contingency then
-			contingency(self, data)
+		else
+			buffer:enqueue(event)
 		end
 	end
 end
@@ -222,25 +212,25 @@ end
 function Computer:interrupt(id, data)
 	if id == "text" then
 		assert(type(data) == "string")
-		self:fill_input("text", data)
+		self:event("text", data)
 	elseif id == "digiline" then
 		assert(type(data) == "table")
-		self:fill_input("digiline", data)
+		self:event("digiline", data)
 	elseif id == "shutdown" then
 		if data then
 			self:die()
 		else
-			self:fill_input("shutdown", false, Computer.die)
+			self:event("shutdown", false)
 		end
 	elseif id == "restart" then
 		if data then
 			self:restart()
 		else
-			self:fill_input("shutdown", true, Computer.restart)
+			self:event("shutdown", true)
 		end
 	elseif id == "error" then
 		assert(type(data) == "string")
-		self:fill_input("err", data)
+		self:event("err", data)
 	end
 end
 
@@ -275,28 +265,21 @@ Computer.register_syscall("exit", function(self, arg, pid)
 	self:kill_process(pid)
 end)
 
-function Computer:wait_on_queue(pid, name)
-	local queue = self.input_buffers[name]
+function Computer:wait_on_event(pid)
+	local queue = self.event_buffer
 	if queue:nonempty() then
 		local data = queue:dequeue()
 		local process = self.processes[pid]
 		process:respond(data)
 		self.ready_queue:enqueue(pid)
 	else
-		self.input_queues[name]:enqueue(pid)
+		self.wait_queue:enqueue(pid)
 	end
 end
 
-local function register_queue_syscall(name, queue_name)
-	Computer.register_syscall(name, function(self, arg, pid)
-		self:wait_on_queue(pid, queue_name)
-	end)
-end
-
-register_queue_syscall("wait_shutdown", "shutdown")
-register_queue_syscall("wait_text", "text")
-register_queue_syscall("wait_digiline", "digiline")
-register_queue_syscall("wait_err", "err")
+Computer.register_syscall("wait_event", function(self, arg, pid)
+		self:wait_on_event(pid)
+end)
 
 function Computer:spawn_process(program)
 	local pid = self:fresh()

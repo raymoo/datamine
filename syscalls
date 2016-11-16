@@ -13,23 +13,18 @@ exit
 ====
 Kills the process.
 
-wait_shutdown
-=============
-Wait on a shutdown event. No argument. Response is a boolean telling whether to
-restart.
-
-wait_text
-=========
-Wait for a line of text input. No argument. The response is a line of text.
-
-wait_digiline
-=============
-Wait for a digiline message. No argument. The response is a table with fields
-`channel` and `data`.
-
-wait_err
+wait_event
 ==========
-Wait for a process to crash. No argument. The response is an error message.
+Waits for a hardware event to come in, which comes in the form
+{"event_name", data}
+
+Event types
+-----------
+"text": A line feed text event. Data is a string.
+"digiline": A digiline event. Data is a table of the form
+{ channel = "channel", data = data }
+"err": An error event. Data is an error string.
+"shutdown": A shutdown event. Data is a boolean: If true, you should restart.
 
 forkexec
 ========
